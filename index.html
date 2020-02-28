@@ -20,11 +20,7 @@
         <script>
             var map = L.map('map', {
                 attributionControl: false,
-                maxBounds: L.latLngBounds(
-                    [90,-360],
-                    [-90,360],
-                ),
-            }).setView([90,0],2);
+            }).setView([10,0],2);
             L.tileLayer('./tiles/{z}/{x}/{y}.png', {
                 minZoom:2,
                 maxZoom:5,
