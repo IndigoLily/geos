@@ -44,7 +44,6 @@ function mapToScreen(vec) {
 }
 
 function updatePos(x, y) {
-    debugger;
     mapVec.x += x;
     mapVec.y = Math.min(0, mapVec.y + y);
     map.style.left = mapVec.x + 'px';
@@ -53,12 +52,10 @@ function updatePos(x, y) {
 updatePos(0, 0);
 
 function updateZoom(d) {
-    debugger;
     const center = new Vec(innerWidth/2, innerHeight/2);
     const prevPos = screenToMap(center);
     zoom += d;
-    console.log(mapToScreen(prevPos));
-    //mapVec = center.copy().sub(mapToScreen(prevPos));
+    mapVec.sub(mapToScreen(prevPos).sub(center));
     updatePos(0,0);
 
     map.style.transform = `scale(${2**zoom})`;
