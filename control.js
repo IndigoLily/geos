@@ -59,7 +59,7 @@ function updatePos(x = 0, y = 0) {
 
 function updateZoom(d = 0, zoomCenter = new Vec(0,0)) {
     const prevPos = screenToMap(zoomCenter);
-    zoom += d;
+    zoom = Math.min(zoom+d, 15);
     mapVec.sub(mapToScreen(prevPos).sub(zoomCenter));
     updatePos(0,0);
 
