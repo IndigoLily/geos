@@ -13,10 +13,14 @@ body {
     position: fixed;
 }
 
-#map img {
+#map * {
     display: block;
     position: absolute;
     top: 0;
     left: 0;
     pointer-events: none;
+}
+
+#close {
+    display: none;
 }

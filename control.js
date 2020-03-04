@@ -1,4 +1,6 @@
 const map = document.getElementById('map');
+const namesClose = document.getElementById('close');
+const namesFar   = document.getElementById('far');
 const mapSize = 1000;
 map.querySelectorAll('img').forEach(img => img.width = img.height = `${mapSize}`);
 
@@ -64,13 +66,20 @@ function updateZoom(d = 0, zoomCenter = new Vec(0,0)) {
     updatePos(0,0);
 
     map.style.transform = `scale(${2**zoom})`;
+    if (zoom < 1.5) {
+        namesFar.style.display   = 'block';
+        namesClose.style.display = 'none';
+    } else {
+        namesFar.style.display   = 'none';
+        namesClose.style.display = 'block';
+    }
 }
 
 function reset() {
     zoom = 0;
     updateZoom();
     mapVec = new Vec(0, 0);
-    updatePos((innerWidth-mapSize)/2, 0);
+    updatePos((innerWidth-mapSize*2**zoom)/2, 0);
 }
 
 reset();
