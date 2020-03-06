@@ -62,6 +62,21 @@ function updatePos(x = 0, y = 0) {
 function updateZoom(d = 0, zoomCenter = new Vec(0,0)) {
     const prevPos = screenToMap(zoomCenter);
     zoom = Math.min(zoom+d, 15);
+    const diff = mapToScreen(prevPos).sub(zoomCenter);
+    updatePos(-diff.x,-diff.y);
+
+    map.style.transform = `scale(${2**zoom})`;
+    if (zoom < 1.5) {
+        namesFar.style.display   = 'block';
+        namesClose.style.display = 'none';
+    } else {
+        namesFar.style.display   = 'none';
+        namesClose.style.display = 'block';
+    }
+}
+function updateZoomTo(z = 0, zoomCenter = new Vec(0,0)) {
+    const prevPos = screenToMap(zoomCenter);
+    zoom = Math.min(z, 15);
     mapVec.sub(mapToScreen(prevPos).sub(zoomCenter));
     updatePos(0,0);
 
@@ -134,4 +149,63 @@ window.addEventListener('keydown', e => {
 
 window.addEventListener('wheel', e => {
     updateZoom(-Math.sign(e.deltaY)/3, new Vec(e.clientX, e.clientY));
+});
+
+let touch1 = null;
+let touch2 = null;
+let oldMapVec = null;
+let oldZoom = undefined;
+
+window.addEventListener('touchstart', e => {
+    if (!touch1) {
+        touch1 = Array.from(e.touches).find(el => el.identifier === 0);
+        touch1 = new Vec(touch1.clientX, touch1.clientY);
+        oldMapVec = mapVec.copy();
+    } else if (!touch2) {
+        touch1 = Array.from(e.touches).find(el => el.identifier === 0);
+        touch2 = Array.from(e.touches).find(el => el.identifier === 1);
+        touch1 = new Vec(touch1.clientX, touch1.clientY);
+        touch2 = new Vec(touch2.clientX, touch2.clientY);
+        oldMapVec = mapVec.copy();
+        oldZoom = zoom;
+    }
+});
+
+window.addEventListener('touchend', e => {
+    if (Array.from(e.changedTouches).some(el => el.identifier === 0)) {
+        touch1 = null;
+        oldMapVec = null;
+    } else if (Array.from(e.changedTouches).some(el => el.identifier === 1)) {
+        touch2 = null;
+        oldZoom = undefined;
+        touch1 = Array.from(e.touches).find(el => el.identifier === 0);
+        touch1 = new Vec(touch1.clientX, touch1.clientY);
+        oldMapVec = mapVec.copy();
+    }
+});
+
+window.addEventListener('touchmove', e => {
+    if (touch2) {
+        let newTouch1 = Array.from(e.touches).find(el => el.identifier === 0);
+        let newTouch2 = Array.from(e.touches).find(el => el.identifier === 1);
+        newTouch1 = new Vec(newTouch1.clientX, newTouch1.clientY);
+        newTouch2 = new Vec(newTouch2.clientX, newTouch2.clientY);
+
+        const dist1 = Math.hypot(touch1.x    - touch2.x,    touch1.y    - touch2.y);
+        const dist2 = Math.hypot(newTouch1.x - newTouch2.x, newTouch1.y - newTouch2.y);
+
+        const oldCenter = touch1   .copy().add(touch2)   .scale(0.5)
+        const newCenter = newTouch1.copy().add(newTouch2).scale(0.5)
+
+        //mapVec = oldMapVec.copy().add(newCenter.sub(oldCenter));
+        //updatePos(0,0);
+        z = oldZoom + Math.log2(dist2/dist1);
+        updateZoomTo(z, screenCenter);
+
+    } else if (touch1) {
+        let newTouch1 = Array.from(e.touches).find(el => el.identifier === 0);
+        newTouch1 = new Vec(newTouch1.clientX, newTouch1.clientY);
+        mapVec = oldMapVec.copy().add(newTouch1.sub(touch1));
+        updatePos();
+    }
 });
