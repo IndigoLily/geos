@@ -1,0 +1,12 @@
+[package]
+name = "convert_svg"
+version = "0.1.0"
+edition = "2021"
+description = "Converts an SVG of the Geos map into a JSON file of coordinates for my web app to read"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+svg = "0.10.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.59"
