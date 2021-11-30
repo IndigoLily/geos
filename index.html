@@ -1,18 +1,27 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta name="viewport" content="user-scalable=no"/>
-        <meta charset='UTF-8'>
-        <title>D&D</title>
-        <link rel='stylesheet' type='text/css' href='style.css'>
-    </head>
-    <body>
-        <div id='map'>
-            <img id='land'  src='./svg/land.svg'>
-            <img id='far'   src='./svg/names_far.svg'>
-            <img id='close' src='./svg/names_close.svg'>
-        </div>
+  <head>
+    <meta charset="utf-8">
+    <link rel='stylesheet' type='text/css' href='style.css'>
+  </head>
+  <body>
+    <div id="legend">
+      <table>
+        <thead>
+          <tr>
+            <th colspan="2">Legend</th>
+          </tr>
+        </thead>
+        <tr> <td class="box water-fill"></td>    <td>Water</td>    </tr>
+        <tr> <td class="box land-fill"></td>     <td>Land</td>     </tr>
+        <tr> <td class="box forest-fill"></td>   <td>Forest</td>   </tr>
+        <tr> <td class="box desert-fill"></td>   <td>Desert</td>   </tr>
+        <tr> <td class="box swamp-fill"></td>    <td>Swamp</td>    </tr>
+        <tr> <td class="box mountain-fill"></td> <td>Mountain</td> </tr>
+        <tr> <td class="box volcano-fill"></td>  <td>Volcano</td>  </tr>
+      </table>
+    </div>
 
-        <script src='control.js'></script>
-    </body>
+    <script type="module" src="main.js"></script>
+  </body>
 </html>

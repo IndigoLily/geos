@@ -1,27 +1,40 @@
+* {
+  padding: 0;
+  margin: 0;
+}
+
+html, body {
+  touch-action: none;
+}
+
 html {
-    margin: 0;
-    padding: 0;
-    background-color: #aadaff;
+  overflow: hidden;
+  background-color: #aadaff;
 }
 
-body {
-    margin: 0;
-    padding: 0;
-    overscroll-behavior: none;
+#legend {
+  position: fixed;
+  left: 0;
+  top: 0;
+  margin: 1em;
+  padding: 1em;
+
+  font-family: sans-serif;
+  font-size: 14pt;
+  background-color: #fff;
+  border-radius: 0.5em;
+  box-shadow: 0 0 1em #0004;
 }
 
-#map {
-    position: fixed;
+#legend thead th {
+  padding-bottom: 0.5em;
 }
 
-#map * {
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    pointer-events: none;
+#legend .box {
+  padding: 0.5em;
+  border: 1px solid black;
 }
 
-#close {
-    display: none;
+#legend tr td:nth-child(2) {
+  padding-left: 0.5ch;
 }

@@ -1,0 +1,7 @@
+{
+  "extends": "/home/lily/.config/tsconfig.json",
+  "compilerOptions": {
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+  }
+}
