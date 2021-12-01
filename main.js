@@ -94,34 +94,20 @@ class Dir {
         }
     }
 }
-let heldLeftMouse = null;
-function singlePointerDown(ev) {
+let pointers = [];
+function pointerDown(ev) {
     if (ev.button === 0) {
-        cnv.removeEventListener('pointerdown', singlePointerDown);
-        const oldView = { x: view.x, y: view.y };
-        const oldPointer = { x: ev.x, y: ev.y };
-        function singlePointerMove(ev) {
-            const dx = oldPointer.x - ev.x;
-            const dy = oldPointer.y - ev.y;
-            view.x = oldView.x + dx / scale;
-            view.y = oldView.y + dy / scale;
+        if (pointers.length === 0) {
+            pointers.push({
+                view: { x: view.x, y: view.y },
+                pointer: { x: ev.x, y: ev.y },
+            });
         }
-        function singlePointerUp(_e) {
-            window.removeEventListener('pointermove', singlePointerMove);
-            window.removeEventListener('pointerup', singlePointerUp);
-            window.removeEventListener('pointerleave', singlePointerUp);
-            window.removeEventListener('pointercancel', singlePointerUp);
-            window.removeEventListener('pointerout', singlePointerUp);
-            cnv.addEventListener('pointerdown', singlePointerDown);
+        else if (pointers.length === 1) {
         }
-        window.addEventListener('pointermove', singlePointerMove);
-        window.addEventListener('pointerup', singlePointerUp);
-        window.addEventListener('pointerleave', singlePointerUp);
-        window.addEventListener('pointercancel', singlePointerUp);
-        window.addEventListener('pointerout', singlePointerUp);
     }
 }
-cnv.addEventListener('pointerdown', singlePointerDown);
+cnv.addEventListener('pointerdown', pointerDown);
 window.addEventListener('wheel', ({ deltaY }) => {
     scaleExponent -= Math.sign(deltaY) / 10;
     scale = 2 ** scaleExponent;
@@ -209,6 +195,10 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
         drawPaths("land");
         ctx.globalCompositeOperation = 'source-atop';
         drawPaths("forest");
+        drawPaths("desert");
+        drawPaths("swamp");
+        drawPaths("mountain");
+        drawPaths("volcano");
         ctx.globalCompositeOperation = 'source-over';
         ctx.strokeStyle = '#f00';
         ctx.globalAlpha = 0.5;

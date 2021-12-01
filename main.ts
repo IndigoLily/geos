@@ -310,10 +310,10 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
     drawPaths("land");
     ctx.globalCompositeOperation = 'source-atop';
     drawPaths("forest");
-    //drawPaths("desert");
-    //drawPaths("swamp");
-    //drawPaths("mountain");
-    //drawPaths("volcano");
+    drawPaths("desert");
+    drawPaths("swamp");
+    drawPaths("mountain");
+    drawPaths("volcano");
     //drawPaths("lake");
     ctx.globalCompositeOperation = 'source-over';
 

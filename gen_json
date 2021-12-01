@@ -1,0 +1,2 @@
+#!/usr/bin/zsh
+./convert_svg/target/release/convert_svg ./svg/equirec.svg
