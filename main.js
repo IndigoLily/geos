@@ -11,13 +11,13 @@ function resize() {
 }
 window.addEventListener('resize', resize);
 const CLR = {
-    water: "#AADAFF",
-    land: "#FFFFFF",
-    forest: "#A7C992",
-    desert: "#F5EEBB",
-    swamp: "#C1D07E",
-    mountain: "#ABABAB",
-    volcano: "#CF9D80",
+    water: "#8ab4f8ff",
+    land: "#bbe2c6ff",
+    forest: "#94d2a5ff",
+    desert: "#f3eddfff",
+    swamp: "#b5cd98ff",
+    mountain: "#c9cccfff",
+    volcano: "#d9c2a5ff",
     get lake() { return this.water; },
     get river() { return this.water; },
 };
