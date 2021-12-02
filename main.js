@@ -14,8 +14,8 @@ const CLR = {
     water: "#8ab4f8ff",
     land: "#bbe2c6ff",
     forest: "#94d2a5ff",
-    desert: "#f3eddfff",
     swamp: "#b5cd98ff",
+    desert: "#f3eddfff",
     mountain: "#c9cccfff",
     volcano: "#d9c2a5ff",
     get lake() { return this.water; },
@@ -200,6 +200,13 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
         drawPaths("mountain");
         drawPaths("volcano");
         ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = '#00f';
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(-view.x * scale, -height / 2);
+        ctx.lineTo(-view.x * scale, height / 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
         ctx.strokeStyle = '#f00';
         ctx.globalAlpha = 0.5;
         ctx.beginPath();

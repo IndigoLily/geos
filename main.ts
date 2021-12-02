@@ -22,8 +22,8 @@ const CLR: Record<FeatureType, string> = {
   water:    "#8ab4f8ff",
   land:     "#bbe2c6ff",
   forest:   "#94d2a5ff",
-  desert:   "#f3eddfff",
   swamp:    "#b5cd98ff",
+  desert:   "#f3eddfff",
   mountain: "#c9cccfff",
   volcano:  "#d9c2a5ff",
   get lake()  { return this.water },
@@ -317,6 +317,15 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
     //drawPaths("lake");
     ctx.globalCompositeOperation = 'source-over';
 
+    // prime meridian
+    ctx.strokeStyle = '#00f';
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(-view.x * scale, -height/2);
+    ctx.lineTo(-view.x * scale,  height/2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
     // equator
     ctx.strokeStyle = '#f00';
     ctx.globalAlpha = 0.5;
@@ -328,9 +337,6 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
 
     // border
     ctx.strokeStyle = '#000';
-    //ctx.moveTo((-min - view.x) * scale, 0);
-    //ctx.lineTo((+min - view.x) * scale, 0);
-    //ctx.stroke();
     ctx.strokeRect((-min - view.x) * scale, (-min/2 - view.y) * scale, min * 2 * scale, min * scale)
 
     requestAnimationFrame(drawFrame);
