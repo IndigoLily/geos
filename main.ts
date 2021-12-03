@@ -1,10 +1,37 @@
+import { Dir, heldPanKeys, heldZoomKeys, initPointer, initWheel } from './input.js'
+
 type FeatureType = "water" | "land" | "forest" | "desert" | "swamp" | "mountain" | "volcano" | "lake" | "river";
-type Point = { x: number, y: number };
 
 const cnv = document.body.appendChild(document.createElement("canvas"));
 const ctx = cnv.getContext("2d")!;
 
-let width = 1, height = 1, min = Math.min(width, height), view = {x:0,y:0}, scaleExponent = 0, scale = 1;
+let width = 1, height = 1, min = Math.min(width, height);
+
+const view = new class View {
+  x: number = 0;
+  y: number = 0;
+  #scale: number;
+  #scaleExponent: number = 0;
+  constructor() {
+    this.#scale = 2**this.#scaleExponent;
+  }
+
+  get scale() {
+    return this.#scale;
+  }
+
+  get scaleExponent() {
+    return this.#scaleExponent;
+  }
+
+  set scaleExponent(n: number) {
+    this.#scaleExponent = n;
+    this.#scale = 2**this.#scaleExponent;
+  }
+};
+
+initWheel(view);
+initPointer(view);
 
 // in km
 const geosDiameter = 14016.2;
@@ -24,7 +51,7 @@ const CLR: Record<FeatureType, string> = {
   forest:   "#94d2a5ff",
   swamp:    "#b5cd98ff",
   desert:   "#f3eddfff",
-  mountain: "#c9cccfff",
+  mountain: "#bcbfc3ff",
   volcano:  "#d9c2a5ff",
   get lake()  { return this.water },
   get river() { return this.water },
@@ -33,237 +60,6 @@ const CLR: Record<FeatureType, string> = {
 for (const [feature, clr] of Object.entries(CLR)) {
   document.querySelectorAll(`.${feature}-fill`).forEach(el => (el as HTMLElement).style.backgroundColor = clr)
 }
-
-
-
-// inputs
-const moveAmount = 5;
-
-type NS = ""|"N"|"S";
-type EW = ""|"E"|"W";
-type DirString = `${NS}${EW}`;
-
-function add<T extends NS|EW>(ns1: T, ns2: T): T {
-  if (ns1 === ns2) return ns1;
-  if (ns1 === "" || ns2 === "") return ns1 || ns2;
-  return "" as T;
-}
-
-class Dir {
-  readonly ns: NS = "";
-  readonly ew: EW = "";
-  constructor(dir: DirString) {
-    if (dir.startsWith("N")) {
-      this.ns = "N";
-    } else if (dir.startsWith("S")) {
-      this.ns = "S";
-    }
-
-    if (dir.endsWith("E")) {
-      this.ew = "E";
-    } else if (dir.endsWith("W")) {
-      this.ew = "W";
-    }
-  }
-
-  add(other: Dir): Dir {
-    const ns: NS = add<NS>(this.ns, other.ns),
-      ew: EW = add<EW>(this.ew, other.ew);
-    return new Dir(`${ns}${ew}`);
-  }
-
-  moveView() {
-    switch(this.ns) {
-      case "N":
-        view.y -= moveAmount / scale;
-        break;
-      case "S":
-        view.y += moveAmount / scale;
-        break;
-    }
-
-    switch(this.ew) {
-      case "W":
-        view.x -= moveAmount / scale;
-        break;
-      case "E":
-        view.x += moveAmount / scale;
-        break;
-    }
-  }
-
-  static fromKey(key: string): Dir {
-    switch (key) {
-      case "ArrowUp":
-      case "w":
-      case "k":
-        return new Dir("N");
-
-      case "ArrowDown":
-      case "s":
-      case "j":
-        return new Dir("S");
-
-      case "ArrowRight":
-      case "d":
-      case "l":
-        return new Dir("E");
-
-      case "ArrowLeft":
-      case "a":
-      case "h":
-        return new Dir("W");
-
-      default:
-        return new Dir("");
-    }
-  }
-}
-
-//let heldLeftMouse = null as null|{oldView:typeof view, oldMouse:typeof view};
-
-let pointers: Array<{view:Point, pointer:Point}> = [];
-
-function pointerDown(ev: PointerEvent) {
-  if (ev.button === 0) {
-    if (pointers.length === 0) {
-      pointers.push({
-        view: { x: view.x, y: view.y },
-        pointer: { x: ev.x, y: ev.y },
-      });
-    } else if (pointers.length === 1) {
-    }
-  }
-}
-
-cnv.addEventListener('pointerdown', pointerDown);
-
-//function singlePointerDown(ev: PointerEvent) {
-//  if (ev.button === 0) {
-//    cnv.removeEventListener('pointerdown', singlePointerDown);
-//
-//    const oldView = { x: view.x, y: view.y };
-//    const oldPointer = { x: ev.x, y: ev.y };
-//
-//    function singlePointerMove(ev: PointerEvent) {
-//      const dx = oldPointer.x - ev.x;
-//      const dy = oldPointer.y - ev.y;
-//      view.x = oldView.x + dx / scale;
-//      view.y = oldView.y + dy / scale;
-//    }
-//
-//    function singlePointerUp(_e: PointerEvent) {
-//      window.removeEventListener('pointermove', singlePointerMove);
-//      window.removeEventListener('pointerup', singlePointerUp);
-//      window.removeEventListener('pointerleave', singlePointerUp);
-//      window.removeEventListener('pointercancel', singlePointerUp);
-//      window.removeEventListener('pointerout', singlePointerUp);
-//      cnv.addEventListener('pointerdown', singlePointerDown);
-//    }
-//
-//    window.addEventListener('pointermove', singlePointerMove);
-//
-//    window.addEventListener('pointerup', singlePointerUp);
-//    window.addEventListener('pointerleave', singlePointerUp);
-//    window.addEventListener('pointercancel', singlePointerUp);
-//    window.addEventListener('pointerout', singlePointerUp);
-//  }
-//}
-//
-//cnv.addEventListener('pointerdown', singlePointerDown);
-
-//window.addEventListener('pointerdown', ({ x, y, button }) => {
-//  if (button === 0) {
-//    heldLeftMouse = { oldView: {x:view.x, y:view.y}, oldMouse: {x,y} } ;
-//  }
-//});
-//
-//window.addEventListener('pointerup', ({ button }) => {
-//  if (button === 0) {
-//    heldLeftMouse = null;
-//  }
-//});
-//
-//window.addEventListener('pointermove', ({ x, y }) => {
-//  if (heldLeftMouse) {
-//    const dx = heldLeftMouse.oldMouse.x - x;
-//    const dy = heldLeftMouse.oldMouse.y - y;
-//    view.x = heldLeftMouse.oldView.x + dx / scale;
-//    view.y = heldLeftMouse.oldView.y + dy / scale;
-//  }
-//});
-
-window.addEventListener('wheel', ({ deltaY }) => {
-  scaleExponent -= Math.sign(deltaY) / 10;
-  scale = 2**scaleExponent;
-});
-
-const heldPanKeys: Set<string> = new Set();
-const heldZoomKeys: Set<string> = new Set();
-
-window.addEventListener('keydown', ({ key }) => {
-  switch (key) {
-    case "ArrowUp":
-    case "w":
-    case "k":
-
-    case "ArrowDown":
-    case "s":
-    case "j":
-
-    case "ArrowRight":
-    case "d":
-    case "l":
-
-    case "ArrowLeft":
-    case "a":
-    case "h":
-
-      heldPanKeys.add(key);
-      break;
-
-    case "+":
-    case "-":
-      heldZoomKeys.add(key);
-      break;
-
-    default:
-      console.debug('keydown', key);
-      break;
-  }
-});
-
-window.addEventListener('keyup', ({ key }) => {
-  switch (key) {
-    case "ArrowUp":
-    case "w":
-    case "k":
-
-    case "ArrowDown":
-    case "s":
-    case "j":
-
-    case "ArrowLeft":
-    case "a":
-    case "h":
-
-    case "ArrowRight":
-    case "d":
-    case "l":
-
-      heldPanKeys.delete(key);
-      break;
-
-    case "+":
-    case "-":
-      heldZoomKeys.delete(key);
-      break;
-
-    default:
-      console.debug('keyup', key);
-      break;
-  }
-});
 
 
 
@@ -284,8 +80,8 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
       ctx.beginPath();
       for (const [x,y] of piece) {
         ctx.lineTo(
-          (x / 180 * Math.min(width,height) - view.x) * scale,
-          (y / 180 * Math.min(width,height) - view.y) * scale
+          (x / 180 * Math.min(width,height) - view.x) * view.scale,
+          (y / 180 * Math.min(width,height) - view.y) * view.scale
         );
       }
       ctx.closePath();
@@ -299,14 +95,14 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
       .reduce(
         (sum: Dir, current: Dir) => sum.add(current),
         new Dir("")
-      ).moveView();
+      ).moveView(view);
 
-    Array.from(heldZoomKeys);
+    view.scaleExponent += Array.from(heldZoomKeys).reduce((prev:number,current:string) => prev + (current === '+' ? 1 : -1), 0) / 25;
 
     ctx.resetTransform();
     ctx.clearRect(0, 0, width, height);
-
     ctx.translate(width/2, height/2);
+
     drawPaths("land");
     ctx.globalCompositeOperation = 'source-atop';
     drawPaths("forest");
@@ -319,25 +115,25 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
 
     // prime meridian
     ctx.strokeStyle = '#00f';
-    ctx.globalAlpha = 0.5;
+    ctx.globalAlpha = 1/3;
     ctx.beginPath();
-    ctx.moveTo(-view.x * scale, -height/2);
-    ctx.lineTo(-view.x * scale,  height/2);
+    ctx.moveTo(-view.x * view.scale, -height/2);
+    ctx.lineTo(-view.x * view.scale,  height/2);
     ctx.stroke();
     ctx.globalAlpha = 1;
 
     // equator
     ctx.strokeStyle = '#f00';
-    ctx.globalAlpha = 0.5;
+    ctx.globalAlpha = 1/3;
     ctx.beginPath();
-    ctx.moveTo(-width/2, -view.y * scale);
-    ctx.lineTo( width/2, -view.y * scale);
+    ctx.moveTo(-width/2, -view.y * view.scale);
+    ctx.lineTo( width/2, -view.y * view.scale);
     ctx.stroke();
     ctx.globalAlpha = 1;
 
     // border
     ctx.strokeStyle = '#000';
-    ctx.strokeRect((-min - view.x) * scale, (-min/2 - view.y) * scale, min * 2 * scale, min * scale)
+    ctx.strokeRect((-min - view.x) * view.scale, (-min/2 - view.y) * view.scale, min * 2 * view.scale, min * view.scale)
 
     requestAnimationFrame(drawFrame);
   }
