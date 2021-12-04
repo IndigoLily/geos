@@ -1,3 +1,4 @@
+import { view } from './view.js';
 const moveAmount = 10;
 function add(ns1, ns2) {
     if (ns1 === ns2)
@@ -27,7 +28,7 @@ export class Dir {
         const ns = add(this.ns, other.ns), ew = add(this.ew, other.ew);
         return new Dir(`${ns}${ew}`);
     }
-    moveView(view) {
+    moveView() {
         switch (this.ns) {
             case "N":
                 view.y -= moveAmount / view.scale;
@@ -68,42 +69,87 @@ export class Dir {
         }
     }
 }
-export function initWheel(view) {
-    window.addEventListener('wheel', ({ deltaY }) => {
-        view.scaleExponent -= Math.sign(deltaY) / moveAmount;
-    });
+class Pointer {
+    constructor(e) {
+        this.id = e.pointerId;
+        this.x = e.x;
+        this.y = e.y;
+        this.oldX = e.x;
+        this.oldY = e.y;
+    }
 }
-export function initPointer(view) {
-    let pointer1 = null;
-    let pointer2 = null;
-    window.addEventListener('pointerdown', e => {
-        if (pointer1 === null) {
-            pointer1 = {
-                id: e.pointerId,
-                orig: { x: e.x, y: e.y },
-                current: { x: e.x, y: e.y }
-            };
+let pointers = [];
+let oldView = null;
+let oldMid = null;
+let oldDist = null;
+window.addEventListener('wheel', e => {
+    const oldMap = view.screenToMap(e.x, e.y);
+    view.scaleExponent -= Math.sign(e.deltaY) / moveAmount;
+    const oldPointer = view.mapToScreen(...oldMap);
+    view.x += (oldPointer[0] - e.x) / view.scale;
+    view.y += (oldPointer[1] - e.y) / view.scale;
+    if (pointers.length === 1) {
+        oldView = view.clone();
+        pointers = [new Pointer({ x: e.x, y: e.y, pointerId: pointers[0].id })];
+    }
+});
+window.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 1) {
+        return;
+    }
+    if (pointers.length === 0) {
+        pointers.push(new Pointer(e));
+        oldView = view.clone();
+    }
+    else if (pointers.length === 1) {
+        pointers[0].oldX = pointers[0].x;
+        pointers[0].oldY = pointers[0].y;
+        pointers.push(new Pointer(e));
+        oldView = view.clone();
+        oldMid = {
+            x: (pointers[0].oldX + pointers[1].oldX) / 2,
+            y: (pointers[0].oldY + pointers[1].oldY) / 2,
+        };
+        oldDist = Math.hypot(pointers[0].oldX - pointers[1].oldX, pointers[0].oldY - pointers[1].oldY);
+    }
+});
+window.addEventListener('pointerup', e => {
+    const oldLen = pointers.length;
+    pointers = pointers.filter(p => p.id !== e.pointerId);
+    if (oldLen === 2 && pointers.length === 1) {
+        pointers[0].oldX = pointers[0].x;
+        pointers[0].oldY = pointers[0].y;
+        oldView = view.clone();
+        oldMid = null;
+        oldDist = null;
+    }
+    if (pointers.length === 0) {
+        oldView = null;
+    }
+});
+window.addEventListener('pointermove', e => {
+    for (const p of pointers) {
+        if (p.id === e.pointerId) {
+            p.x = e.x;
+            p.y = e.y;
         }
-        else if (pointer2 === null) {
-            pointer2 = {
-                id: e.pointerId,
-                orig: { x: e.x, y: e.y },
-                current: { x: e.x, y: e.y }
-            };
-        }
-        console.log(pointer1, pointer2);
-    });
-    window.addEventListener('pointerup', e => {
-        if (pointer1?.id === e.pointerId) {
-            pointer1 = pointer2;
-            pointer2 = null;
-        }
-        else if (pointer2?.id === e.pointerId) {
-            pointer2 = null;
-        }
-        console.log(pointer1, pointer2);
-    });
-}
+    }
+    if (pointers.length === 1) {
+        const dx = pointers[0].oldX - e.x;
+        const dy = pointers[0].oldY - e.y;
+        view.x = oldView.x + dx / view.scale;
+        view.y = oldView.y + dy / view.scale;
+    }
+    if (pointers.length === 2) {
+        const newDist = Math.hypot(pointers[0].x - pointers[1].x, pointers[0].y - pointers[1].y);
+        const ratio = newDist / oldDist;
+        const dx = oldMid.x - (pointers[0].x + pointers[1].x) / 2;
+        const dy = oldMid.y - (pointers[0].y + pointers[1].y) / 2;
+        view.scaleExponent = oldView.scaleExponent + Math.log2(ratio);
+        view.x = oldView.x + dx / view.scale;
+        view.y = oldView.y + dy / view.scale;
+    }
+});
 export const heldPanKeys = new Set();
 export const heldZoomKeys = new Set();
 window.addEventListener('keydown', ({ key }) => {
