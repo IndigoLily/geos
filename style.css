@@ -38,3 +38,12 @@ html {
 #legend tr td:nth-child(2) {
   padding-left: 0.5ch;
 }
+
+/*
+.city-name {
+  font-size: 2vh;
+  position: fixed;
+  transform: translate(-50%, -125%);
+  text-shadow: 1px 1px 0.1em white;
+}
+*/

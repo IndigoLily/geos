@@ -2,6 +2,7 @@ import { view } from './view.js';
 import { Dir, heldPanKeys, heldZoomKeys } from './input.js';
 const cnv = document.body.appendChild(document.createElement("canvas"));
 const ctx = cnv.getContext("2d");
+const cityNames = new Map();
 const geosDiameter = 14016.2;
 const geosRadius = geosDiameter / 2;
 function resize() {
@@ -27,7 +28,7 @@ window.onload = async () => Promise.resolve();
 Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
     resize();
     function drawPaths(kind) {
-        const data = mapData[kind];
+        const data = mapData.paths[kind];
         if (data === undefined) {
             console.warn(`tried to draw ${kind}, but mapData does not contain that`);
             return;
@@ -55,21 +56,40 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
         drawPaths("swamp");
         drawPaths("mountain");
         drawPaths("volcano");
+        drawPaths("lake");
         ctx.globalCompositeOperation = 'source-over';
+        ctx.lineWidth = 1;
         ctx.strokeStyle = '#00f';
         ctx.globalAlpha = 1 / 3;
         ctx.beginPath();
-        ctx.moveTo(view.w / 2 - view.x * view.scale, 0);
-        ctx.lineTo(view.w / 2 - view.x * view.scale, view.h);
+        ctx.moveTo((view.w / 2 - view.x * view.scale) | 0, 0);
+        ctx.lineTo((view.w / 2 - view.x * view.scale) | 0, view.h);
         ctx.stroke();
         ctx.globalAlpha = 1;
         ctx.strokeStyle = '#f00';
         ctx.globalAlpha = 1 / 3;
         ctx.beginPath();
-        ctx.moveTo(0, view.h / 2 - view.y * view.scale);
-        ctx.lineTo(view.w, view.h / 2 - view.y * view.scale);
+        ctx.moveTo(0, (view.h / 2 - view.y * view.scale) | 0);
+        ctx.lineTo(view.w, (view.h / 2 - view.y * view.scale) | 0);
         ctx.stroke();
         ctx.globalAlpha = 1;
+        const r = view.min * view.scale ** 0.5 / 1000;
+        if (r > 2) {
+            ctx.fillStyle = '#000';
+            ctx.strokeStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = `${r * 4}px sans-serif`;
+            ctx.lineWidth = r / 10;
+            for (const city of mapData.cities) {
+                const screenPoint = view.mapToScreen(...city.point);
+                ctx.beginPath();
+                ctx.arc(...screenPoint, r, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillText(city.name, screenPoint[0], screenPoint[1] - r * 4);
+                ctx.strokeText(city.name, screenPoint[0], screenPoint[1] - r * 4);
+            }
+        }
         ctx.strokeStyle = '#000';
         ctx.strokeRect(view.w / 2 + (-view.min - view.x) * view.scale, view.h / 2 + (-view.min / 2 - view.y) * view.scale, view.min * 2 * view.scale, view.min * view.scale);
         requestAnimationFrame(drawFrame);
