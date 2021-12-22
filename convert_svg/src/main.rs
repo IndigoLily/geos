@@ -3,7 +3,7 @@
 use std::fmt::{self, Display};
 use std::ops::{Deref, Add};
 use std::path::PathBuf;
-use std::collections::HashMap as Map;
+use std::collections::HashMap;
 use std::str::FromStr;
 
 use svg::node::element::path::{Command, Data, Position, Parameters, Number as SvgNumber};
@@ -28,10 +28,10 @@ fn path_cmd_inner(cmd: &Command) -> Option<(&Position, &Parameters)> {
     }
 }
 
-#[derive(Debug, Hash, Eq, PartialEq, Clone)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
 #[derive(Serialize, Deserialize)]
 #[serde(into = "String")]
-enum MapFeature {
+enum MapFeatureType {
     Land,
     Forest,
     Desert,
@@ -40,12 +40,13 @@ enum MapFeature {
     Volcano,
     Lake,
     River,
+    City,
 }
 
-impl FromStr for MapFeature {
+impl FromStr for MapFeatureType {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use MapFeature::*;
+        use MapFeatureType::*;
         Ok(match s {
             "Land"      => Land,
             "Forests"   => Forest,
@@ -55,14 +56,15 @@ impl FromStr for MapFeature {
             "Volcanoes" => Volcano,
             "Rivers"    => River,
             "Lakes"     => Lake,
+            "Cities"    => City,
             _ => return Err(()),
         })
     }
 }
 
-impl Display for MapFeature {
+impl Display for MapFeatureType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        use MapFeature::*;
+        use MapFeatureType::*;
         write!(f, "{}", match self {
             Land     => "land",
             Forest   => "forest",
@@ -72,11 +74,12 @@ impl Display for MapFeature {
             Volcano  => "volcano",
             River    => "river",
             Lake     => "lake",
+            City     => "city",
         })
     }
 }
 
-impl Into<String> for MapFeature {
+impl Into<String> for MapFeatureType {
     fn into(self) -> String {
         self.to_string()
     }
@@ -114,17 +117,38 @@ impl Into<Vec<SvgNumber>> for Point {
 
 const SVG_SIZE: (SvgNumber, SvgNumber) = (10000.0, 5000.0);
 
+fn svg_to_latlong(svg_point: &Point) -> Point {
+    Point {
+        x: (svg_point.x / SVG_SIZE.0 - 0.5) * 360.0, // transform from [0,10000] range to [-180,180] range
+        y: (svg_point.y / SVG_SIZE.1 - 0.5) * 180.0, // transform from [0,5000] range to [-90,90] range
+    }
+}
+
+type MapPath = Vec<Point>;
+
+#[derive(Serialize)]
+struct City {
+    name: String,
+    point: Point,
+    is_capital: bool,
+}
+
+#[derive(Default, Serialize)]
+struct Map {
+    paths: HashMap<MapFeatureType, Vec<MapPath>>,
+    cities: Vec<City>,
+}
+
 fn main() {
-    // get path from first argument, second element (index 1) in env::args
+    // get path from first argument, i.e. second element (index 1) in env::args
     let svg_file_path = PathBuf::from(std::env::args().nth(1).unwrap());
     let svg_file_path = svg_file_path.canonicalize().unwrap();
 
-    let mut map_feature_stack: Vec<MapFeature> = Vec::new();
+    let mut map_feature_stack: Vec<MapFeatureType> = Vec::new();
+    let mut current_feature: Option<MapFeatureType> = None;
 
-    type MapPath = Vec<Point>;
-    let mut paths: Map<MapFeature, Vec<MapPath>> = Map::new();
+    let mut map = Map::default();
 
-    //let mut content = String::new();
     for event in svg::open(svg_file_path, &mut String::new()).unwrap() {
         match event {
             Event::Tag("g", tag::Type::Start, attr) => {
@@ -134,6 +158,7 @@ fn main() {
                     if groupmode.deref() == "layer" {
                         if let Ok(feature) = label.parse() {
                             map_feature_stack.push(feature);
+                            current_feature = Some(feature);
                             eprintln!("layer \"{}\" start", map_feature_stack.last().unwrap());
                         }
                     }
@@ -144,6 +169,20 @@ fn main() {
                 if let Some(ending_layer) = map_feature_stack.pop() {
                     eprintln!("layer \"{}\" end", ending_layer);
                 }
+                current_feature = map_feature_stack.last().copied();
+            }
+
+            Event::Tag("circle", _, attr) if current_feature == Some(MapFeatureType::City) => {
+                let name = String::from(attr.get("inkscape:label").unwrap().deref());
+                let x: SvgNumber = attr.get("cx").unwrap().parse().unwrap();
+                let y: SvgNumber = attr.get("cy").unwrap().parse().unwrap();
+                let mut is_capital = false;
+                if let Some(classlist) = attr.get("class") {
+                    if classlist.contains("capital") {
+                        is_capital = true;
+                    }
+                }
+                map.cities.push(City { name, point: Point{x,y}, is_capital });
             }
 
             Event::Tag("path", tag_type, attr) => if !map_feature_stack.is_empty() {
@@ -189,26 +228,29 @@ fn main() {
                     }
                 }
 
-                paths.entry(map_feature_stack.last().unwrap().clone()).or_default().push(points);
+                map.paths.entry(map_feature_stack.last().unwrap().clone()).or_default().push(points);
             },
 
             _ => {},
         }
     }
 
-    for feature_paths in paths.values_mut() {
+    for feature_paths in map.paths.values_mut() {
         for path in feature_paths.iter_mut() {
             for point in path.iter_mut() {
-                point.x = (point.x / SVG_SIZE.0 - 0.5) * 360.0; // transform from [0,10000] range to [-180,180] range
-                point.y = (point.y / SVG_SIZE.1 - 0.5) * 180.0; // transform from [0,5000] range to [-90,90] range
+                *point = svg_to_latlong(point);
             }
         }
     }
 
-    for (map_feature_type, paths) in paths.iter() {
+    for city in map.cities.iter_mut() {
+        city.point = svg_to_latlong(&city.point);
+    }
+
+    for (map_feature_type, paths) in map.paths.iter() {
         println!("Feature type \"{}\" has {} paths", map_feature_type, paths.len());
     }
 
     let json = std::fs::File::create("map.json").unwrap();
-    serde_json::to_writer_pretty(json, &paths).unwrap();
+    serde_json::to_writer_pretty(json, &map).unwrap();
 }
