@@ -2,9 +2,6 @@ import { view } from './view.js';
 import { Dir, heldPanKeys, heldZoomKeys } from './input.js';
 const cnv = document.body.appendChild(document.createElement("canvas"));
 const ctx = cnv.getContext("2d");
-const cityNames = new Map();
-const geosDiameter = 14016.2;
-const geosRadius = geosDiameter / 2;
 function resize() {
     [cnv.width, cnv.height] = view.resize();
 }
@@ -28,19 +25,68 @@ window.onload = async () => Promise.resolve();
 Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
     resize();
     function drawPaths(kind) {
-        const data = mapData.paths[kind];
-        if (data === undefined) {
+        const paths = mapData.paths[kind];
+        if (paths === undefined) {
             console.warn(`tried to draw ${kind}, but mapData does not contain that`);
             return;
         }
         ctx.fillStyle = CLR[kind];
-        for (const piece of data) {
-            ctx.beginPath();
-            for (const [x, y] of piece) {
+        ctx.beginPath();
+        for (const path of paths) {
+            const [x, y] = path.slice(0, 1)[0];
+            ctx.moveTo(...view.mapToScreen(x, y));
+            for (const [x, y] of path.slice(1)) {
                 ctx.lineTo(...view.mapToScreen(x, y));
             }
-            ctx.closePath();
-            ctx.fill();
+        }
+        ctx.fill();
+    }
+    function* chunks(arr, n) {
+        for (let i = 0; i < arr.length; i += n) {
+            yield arr.slice(i, i + n);
+        }
+    }
+    function drawRivers() {
+        const paths = mapData.paths.river;
+        if (paths === undefined) {
+            console.warn(`tried to draw river, but mapData does not contain that`);
+            return;
+        }
+        ctx.save();
+        ctx.lineWidth = Math.max(1 / Math.sqrt(2), view.scale / 4);
+        ctx.strokeStyle = CLR.river;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        for (const path of paths) {
+            const [x, y] = path.slice(0, 1)[0];
+            ctx.moveTo(...view.mapToScreen(x, y));
+            for (const [[x1, y1], [x2, y2], [x3, y3]] of chunks(path.slice(1), 3)) {
+                ctx.bezierCurveTo(...view.mapToScreen(x1, y1), ...view.mapToScreen(x2, y2), ...view.mapToScreen(x3, y3));
+            }
+        }
+        ctx.stroke();
+        ctx.restore();
+    }
+    function drawCities() {
+        const r = view.min * view.scale ** 0.5 / 900;
+        if (r > 2.5) {
+            ctx.save();
+            ctx.fillStyle = '#000';
+            ctx.strokeStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = `${r * 4}px serif`;
+            ctx.lineWidth = r / 2;
+            for (const city of mapData.cities) {
+                const screenPoint = view.mapToScreen(...city.point);
+                ctx.beginPath();
+                ctx.arc(...screenPoint, r, 0, Math.PI * 2);
+                ctx.fill();
+                screenPoint[1] -= r * 4;
+                ctx.strokeText(city.name, ...screenPoint);
+                ctx.fillText(city.name, ...screenPoint);
+            }
+            ctx.restore();
         }
     }
     function drawFrame() {
@@ -57,6 +103,7 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
         drawPaths("mountain");
         drawPaths("volcano");
         drawPaths("lake");
+        drawRivers();
         ctx.globalCompositeOperation = 'source-over';
         ctx.lineWidth = 1;
         ctx.strokeStyle = '#00f';
@@ -73,25 +120,9 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
         ctx.lineTo(view.w, (view.h / 2 - view.y * view.scale) | 0);
         ctx.stroke();
         ctx.globalAlpha = 1;
-        const r = view.min * view.scale ** 0.5 / 1000;
-        if (r > 2) {
-            ctx.fillStyle = '#000';
-            ctx.strokeStyle = '#fff';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.font = `${r * 4}px sans-serif`;
-            ctx.lineWidth = r / 10;
-            for (const city of mapData.cities) {
-                const screenPoint = view.mapToScreen(...city.point);
-                ctx.beginPath();
-                ctx.arc(...screenPoint, r, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillText(city.name, screenPoint[0], screenPoint[1] - r * 4);
-                ctx.strokeText(city.name, screenPoint[0], screenPoint[1] - r * 4);
-            }
-        }
         ctx.strokeStyle = '#000';
         ctx.strokeRect(view.w / 2 + (-view.min - view.x) * view.scale, view.h / 2 + (-view.min / 2 - view.y) * view.scale, view.min * 2 * view.scale, view.min * view.scale);
+        drawCities();
         requestAnimationFrame(drawFrame);
     }
     drawFrame();
