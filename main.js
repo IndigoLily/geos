@@ -1,11 +1,11 @@
-import { view } from './view.js';
-import { Dir, heldPanKeys, heldZoomKeys } from './input.js';
+import { view } from "./view.js";
+import { Dir, heldPanKeys, heldZoomKeys } from "./input.js";
 const cnv = document.body.appendChild(document.createElement("canvas"));
 const ctx = cnv.getContext("2d");
 function resize() {
     [cnv.width, cnv.height] = view.resize();
 }
-window.addEventListener('resize', resize);
+window.addEventListener("resize", resize);
 const CLR = {
     water: "#8ab4f8ff",
     land: "#bbe2c6ff",
@@ -23,6 +23,21 @@ for (const [feature, clr] of Object.entries(CLR)) {
 const mapDataPromise = fetch("map.json").then(response => response.json());
 window.onload = async () => Promise.resolve();
 Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
+    const cityHolder = document.createElement("div");
+    cityHolder.id = "cities";
+    document.body.appendChild(cityHolder);
+    for (const city of mapData.cities) {
+        const pos = view.mapToScreen(city.point[0], city.point[1]).map(c => (c * 100) + "%");
+        const nameEl = document.createElement("div");
+        nameEl.innerHTML = city.name;
+        nameEl.classList.add("city-name");
+        [nameEl.style.left, nameEl.style.top] = pos;
+        const markEl = document.createElement("div");
+        markEl.classList.add("city-mark");
+        [markEl.style.left, markEl.style.top] = pos;
+        cityHolder.appendChild(nameEl);
+        cityHolder.appendChild(markEl);
+    }
     resize();
     function drawPaths(kind) {
         const paths = mapData.paths[kind];
@@ -55,7 +70,7 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
         ctx.save();
         ctx.lineWidth = Math.max(1 / Math.sqrt(2), view.scale / 4);
         ctx.strokeStyle = CLR.river;
-        ctx.lineCap = 'round';
+        ctx.lineCap = "round";
         ctx.beginPath();
         for (const path of paths) {
             const [x, y] = path.slice(0, 1)[0];
@@ -68,16 +83,19 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
         ctx.restore();
     }
     function drawCities() {
-        const r = view.min * view.scale ** 0.5 / 900;
-        if (r > 2.5) {
+        const r = view.wh_min * view.scale ** 0.5 / 900;
+        if (r > 3) {
             ctx.save();
-            ctx.fillStyle = '#000';
-            ctx.strokeStyle = '#fff';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
+            ctx.fillStyle = "#000";
+            ctx.strokeStyle = "#fff";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
             ctx.font = `${r * 4}px serif`;
             ctx.lineWidth = r / 2;
             for (const city of mapData.cities) {
+                if (city.name === "") {
+                    continue;
+                }
                 const screenPoint = view.mapToScreen(...city.point);
                 ctx.beginPath();
                 ctx.arc(...screenPoint, r, 0, Math.PI * 2);
@@ -93,10 +111,10 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
         Array.from(heldPanKeys)
             .map(key => Dir.fromKey(key))
             .reduce((sum, current) => sum.add(current), new Dir("")).moveView();
-        view.scaleExponent += Array.from(heldZoomKeys).reduce((prev, current) => prev + (current === '+' ? 1 : -1), 0) / 25;
+        view.scaleExponent += Array.from(heldZoomKeys).reduce((prev, current) => prev + (current === "+" ? 1 : -1), 0) / 25;
         ctx.clearRect(0, 0, view.w, view.h);
         drawPaths("land");
-        ctx.globalCompositeOperation = 'source-atop';
+        ctx.globalCompositeOperation = "source-atop";
         drawPaths("forest");
         drawPaths("desert");
         drawPaths("swamp");
@@ -104,27 +122,27 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
         drawPaths("volcano");
         drawPaths("lake");
         drawRivers();
-        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalCompositeOperation = "source-over";
         ctx.lineWidth = 1;
-        ctx.strokeStyle = '#00f';
+        ctx.strokeStyle = "#00f";
         ctx.globalAlpha = 1 / 3;
         ctx.beginPath();
         ctx.moveTo((view.w / 2 - view.x * view.scale) | 0, 0);
         ctx.lineTo((view.w / 2 - view.x * view.scale) | 0, view.h);
         ctx.stroke();
         ctx.globalAlpha = 1;
-        ctx.strokeStyle = '#f00';
+        ctx.strokeStyle = "#f00";
         ctx.globalAlpha = 1 / 3;
         ctx.beginPath();
         ctx.moveTo(0, (view.h / 2 - view.y * view.scale) | 0);
         ctx.lineTo(view.w, (view.h / 2 - view.y * view.scale) | 0);
         ctx.stroke();
         ctx.globalAlpha = 1;
-        ctx.strokeStyle = '#000';
-        ctx.strokeRect(view.w / 2 + (-view.min - view.x) * view.scale, view.h / 2 + (-view.min / 2 - view.y) * view.scale, view.min * 2 * view.scale, view.min * view.scale);
+        ctx.strokeStyle = "#000";
+        ctx.strokeRect(view.w / 2 + (-view.wh_min - view.x) * view.scale, view.h / 2 + (-view.wh_min / 2 - view.y) * view.scale, view.wh_min * 2 * view.scale, view.wh_min * view.scale);
         drawCities();
         requestAnimationFrame(drawFrame);
     }
     drawFrame();
-    console.log('done');
+    console.log("done");
 });

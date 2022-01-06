@@ -115,12 +115,12 @@ impl Into<Vec<SvgNumber>> for Point {
     }
 }
 
-const SVG_SIZE: (SvgNumber, SvgNumber) = (10000.0, 5000.0);
+const SVG_SIZE: (SvgNumber, SvgNumber) = (36000.0, 18000.0);
 
 fn svg_to_latlong(svg_point: &Point) -> Point {
     Point {
-        x: (svg_point.x / SVG_SIZE.0 - 0.5) * 360.0, // transform from [0,10000] range to [-180,180] range
-        y: (svg_point.y / SVG_SIZE.1 - 0.5) * 180.0, // transform from [0,5000] range to [-90,90] range
+        x: (svg_point.x / SVG_SIZE.0 - 0.5) * 360.0, // transform from [0,36000] range to [-180,180] range
+        y: (svg_point.y / SVG_SIZE.1 - 0.5) * 180.0, // transform from [0,18000] range to [-90,90] range
     }
 }
 
@@ -189,6 +189,8 @@ fn main() {
                 let data = attr.get("d").unwrap();
                 let data = Data::parse(data).unwrap();
 
+                //let misbehaving: bool = attr.get("id").map(|id| &**id == "misbehaving").unwrap_or_default();
+
                 let mut points: Vec<Point> = Vec::new();
                 let mut current_pos = Point::default();
 
@@ -197,6 +199,11 @@ fn main() {
                         Command::Move(pos, params) | Command::Line(pos, params) => {
                             assert!(params.len() % 2 == 0);
                             let mut cmd_points: Vec<Point> = params.chunks(2).map(|pair| Point{ x: pair[0], y: pair[1] }).collect();
+
+                            //if misbehaving {
+                            //    dbg!("move/line", pos, &cmd_points);
+                            //}
+
                             if *pos == Position::Relative {
                                 for p in cmd_points.iter_mut() {
                                     *p = *p + current_pos;
@@ -205,19 +212,73 @@ fn main() {
                             } else {
                                 current_pos = *cmd_points.last().unwrap();
                             }
+
+                            points.extend(cmd_points);
+                        },
+
+                        Command::CubicCurve(pos, params) => {
+                            assert!(params.len() % (2 * 3) == 0);
+                            let mut cmd_points: Vec<Point> = params.chunks(2).map(|pair| Point{ x: pair[0], y: pair[1] }).collect();
+
+                            //if misbehaving {
+                            //    dbg!("curve", pos, &cmd_points);
+                            //}
+
+                            if *pos == Position::Relative {
+                                for (i,p) in cmd_points.iter_mut().enumerate() {
+                                    *p = *p + current_pos;
+                                    if (i + 1) % 3 == 0 {
+                                        // current_pos should be the same throught each triplet, so only change after the triplet's last point
+                                        current_pos = *p;
+                                    }
+                                }
+                            } else {
+                                current_pos = *cmd_points.last().unwrap();
+                            }
+
                             points.extend(cmd_points);
                         },
 
                         Command::VerticalLine(pos, params) => {
-                            let p = Point { x: 0.0, y: params[0] } +
-                                if *pos == Position::Relative { current_pos } else { Point::default() };
+                            let p =
+                                if pos == &Position::Absolute {
+                                    Point { 
+                                        x: current_pos.x,
+                                        y: params[0],
+                                    }
+                                } else {
+                                    Point {
+                                        x: current_pos.x,
+                                        y: current_pos.y + params[0],
+                                    }
+                                };
+
+                            //if misbehaving {
+                            //    dbg!("vline", pos, &p);
+                            //}
+
                             current_pos = p;
                             points.push(p);
                         },
 
                         Command::HorizontalLine(pos, params) => {
-                            let p = Point { x: params[0], y: 0.0 } +
-                                if *pos == Position::Relative { current_pos } else { Point::default() };
+                            let p =
+                                if pos == &Position::Absolute {
+                                    Point { 
+                                        y: current_pos.y,
+                                        x: params[0],
+                                    }
+                                } else {
+                                    Point {
+                                        y: current_pos.y,
+                                        x: current_pos.x + params[0],
+                                    }
+                                };
+
+                            //if misbehaving {
+                            //    dbg!("hline", pos, &p);
+                            //}
+
                             current_pos = p;
                             points.push(p);
                         },

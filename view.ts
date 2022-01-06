@@ -4,7 +4,7 @@ class View {
 
   #w: number = 1;
   #h: number = 1;
-  #min: number = 1;
+  #wh_min: number = 1;
 
   #scaleExponent: number = 0;
   #scale: number = 2**this.#scaleExponent;
@@ -25,7 +25,7 @@ class View {
   resize() {
     this.#w = window.innerWidth;
     this.#h = window.innerHeight;
-    this.#min = Math.min(this.#w, this.#h);
+    this.#wh_min = Math.min(this.#w, this.#h);
     return [this.#w, this.#h];
   }
 
@@ -37,8 +37,8 @@ class View {
     return this.#h;
   }
 
-  get min() {
-    return this.#min;
+  get wh_min() {
+    return this.#wh_min;
   }
 
   clone(): View {
@@ -51,15 +51,15 @@ class View {
 
   mapToScreen(x: number, y: number): [number, number] {
     return [
-      (x / 180 * this.min - this.x) * this.scale + this.w/2,
-      (y / 180 * this.min - this.y) * this.scale + this.h/2
+      (x / 180 * this.wh_min - this.x) * this.scale + this.w/2,
+      (y / 180 * this.wh_min - this.y) * this.scale + this.h/2
     ];
   }
 
   screenToMap(x: number, y: number): [number, number] {
     return [
-      ((x - this.w/2) / this.scale + this.x) / this.min * 180,
-      ((y - this.h/2) / this.scale + this.y) / this.min * 180
+      ((x - this.w/2) / this.scale + this.x) / this.wh_min * 180,
+      ((y - this.h/2) / this.scale + this.y) / this.wh_min * 180
     ];
   }
 };
