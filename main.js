@@ -23,21 +23,6 @@ for (const [feature, clr] of Object.entries(CLR)) {
 const mapDataPromise = fetch("map.json").then(response => response.json());
 window.onload = async () => Promise.resolve();
 Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
-    const cityHolder = document.createElement("div");
-    cityHolder.id = "cities";
-    document.body.appendChild(cityHolder);
-    for (const city of mapData.cities) {
-        const pos = view.mapToScreen(city.point[0], city.point[1]).map(c => (c * 100) + "%");
-        const nameEl = document.createElement("div");
-        nameEl.innerHTML = city.name;
-        nameEl.classList.add("city-name");
-        [nameEl.style.left, nameEl.style.top] = pos;
-        const markEl = document.createElement("div");
-        markEl.classList.add("city-mark");
-        [markEl.style.left, markEl.style.top] = pos;
-        cityHolder.appendChild(nameEl);
-        cityHolder.appendChild(markEl);
-    }
     resize();
     function drawPaths(kind) {
         const paths = mapData.paths[kind];
