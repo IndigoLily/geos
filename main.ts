@@ -1,7 +1,7 @@
 import { view } from "./view.js"
 import { Dir, heldPanKeys, heldZoomKeys } from "./input.js"
 
-type FeatureType = "water" | "land" | "forest" | "desert" | "swamp" | "mountain" | "volcano" | "lake" | "river";
+type FeatureType = "water" | "reef" | "land" | "forest" | "desert" | "swamp" | "mountain" | "volcano" | "lake" | "river";
 
 const cnv = document.body.appendChild(document.createElement("canvas"));
 const ctx = cnv.getContext("2d")!;
@@ -34,6 +34,7 @@ function mkStarPath(r: number) {
 
 const CLR: Record<FeatureType, string> = {
   water:    "#8ab4f8ff",
+  reef:     "#8adcf8ff",
   land:     "#bbe2c6ff",
   forest:   "#94d2a5ff",
   swamp:    "#b5cd98ff",
@@ -212,6 +213,7 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
     ctx.clearRect(0, 0, view.w, view.h);
     //ctx.translate(view.w/2, view.h/2);
 
+    drawPaths("reef");
     drawPaths("land");
     ctx.globalCompositeOperation = "source-atop";
     drawPaths("forest");

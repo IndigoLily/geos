@@ -19,6 +19,7 @@ function mkStarPath(r) {
 }
 const CLR = {
     water: "#8ab4f8ff",
+    reef: "#8adcf8ff",
     land: "#bbe2c6ff",
     forest: "#94d2a5ff",
     swamp: "#b5cd98ff",
@@ -153,6 +154,7 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
             .reduce((sum, current) => sum.add(current), new Dir("")).moveView();
         view.scaleExponent += Array.from(heldZoomKeys).reduce((prev, current) => prev + (current === "+" ? 1 : -1), 0) / 25;
         ctx.clearRect(0, 0, view.w, view.h);
+        drawPaths("reef");
         drawPaths("land");
         ctx.globalCompositeOperation = "source-atop";
         drawPaths("forest");
