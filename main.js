@@ -1,12 +1,22 @@
 import { view } from "./view.js";
 import { Dir, heldPanKeys, heldZoomKeys } from "./input.js";
-const starRatio = (3 - Math.sqrt(5)) / 2;
 const cnv = document.body.appendChild(document.createElement("canvas"));
 const ctx = cnv.getContext("2d");
 function resize() {
     [cnv.width, cnv.height] = view.resize();
 }
 window.addEventListener("resize", resize);
+const starRatio = (3 - Math.sqrt(5)) / 2;
+function mkStarPath(r) {
+    const starPath = new Path2D();
+    for (let i = 0; i < 5; i++) {
+        let a = (i / 5 - 1 / 20) * Math.PI * 2;
+        starPath.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        a += 1 / 10 * Math.PI * 2;
+        starPath.lineTo(Math.cos(a) * r * starRatio, Math.sin(a) * r * starRatio);
+    }
+    return starPath;
+}
 const CLR = {
     water: "#8ab4f8ff",
     land: "#bbe2c6ff",
@@ -29,15 +39,9 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
         const legendCapitalCanvas = document.getElementById("capital");
         const legendCapitalCtx = legendCapitalCanvas.getContext("2d");
         const r = legendCapitalCanvas.width / 2;
+        legendCapitalCtx.fillStyle = "#000";
         legendCapitalCtx.translate(r, r);
-        for (let i = 0; i < 5; i++) {
-            let a = (i / 5 - 1 / 20) * Math.PI * 2;
-            legendCapitalCtx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-            a += 1 / 10 * Math.PI * 2;
-            legendCapitalCtx.lineTo(Math.cos(a) * r * starRatio, Math.sin(a) * r * starRatio);
-        }
-        ctx.fillStyle = "#000";
-        legendCapitalCtx.fill();
+        legendCapitalCtx.fill(mkStarPath(r));
     }
     console.debug(mapData);
     function drawPaths(kind) {
@@ -90,26 +94,19 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
         ctx.strokeStyle = "#fff";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        if (r > 3.75) {
+        if (r > 3) {
             ctx.font = `${r * 4}px serif`;
             ctx.lineWidth = r / 2;
-            const starPath = new Path2D();
-            for (let i = 0; i < 5; i++) {
-                let a = (i / 5 - 1 / 20) * Math.PI * 2;
-                starPath.lineTo(Math.cos(a) * r * 3, Math.sin(a) * r * 3);
-                a += 1 / 10 * Math.PI * 2;
-                starPath.lineTo(Math.cos(a) * r * 3 * starRatio, Math.sin(a) * r * 3 * starRatio);
-            }
+            const starPath = mkStarPath(r * 3);
             for (const city of mapData.cities) {
                 if (city.name === "") {
                     continue;
                 }
                 const screenPoint = view.mapToScreen(...city.point);
                 if (city.is_capital) {
-                    ctx.save();
                     ctx.translate(...screenPoint);
                     ctx.fill(starPath);
-                    ctx.restore();
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
                 }
                 else {
                     ctx.beginPath();
