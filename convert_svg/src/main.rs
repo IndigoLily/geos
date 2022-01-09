@@ -3,7 +3,7 @@
 use std::fmt::{self, Display};
 use std::ops::{Deref, Add};
 use std::path::PathBuf;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::str::FromStr;
 
 use svg::node::element::path::{Command, Data, Position, Parameters, Number as SvgNumber};
@@ -28,7 +28,7 @@ fn path_cmd_inner(cmd: &Command) -> Option<(&Position, &Parameters)> {
     }
 }
 
-#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
+#[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
 #[derive(Serialize, Deserialize)]
 #[serde(into = "String")]
 enum MapFeatureType {
@@ -88,7 +88,7 @@ impl Into<String> for MapFeatureType {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 #[derive(Serialize, Deserialize)]
 #[serde(into = "[SvgNumber;2]")]
 struct Point {
@@ -129,11 +129,77 @@ fn svg_to_latlong(svg_point: &Point) -> Point {
 
 type MapPath = Vec<Point>;
 
+#[derive(Serialize, Clone)]
+#[serde(into = "String")]
+enum TextPosition {
+    Above,
+    Below,
+    Left,
+    Right,
+}
+
+impl Default for TextPosition {
+    fn default() -> Self {
+        TextPosition::Above
+    }
+}
+
+impl FromStr for TextPosition {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "above" => TextPosition::Above,
+            "below" => TextPosition::Below,
+            "left"  => TextPosition::Left,
+            "right" => TextPosition::Right,
+            _ => return Err(()),
+        })
+    }
+}
+
+impl Display for TextPosition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{}", match self {
+            TextPosition::Above => "above",
+            TextPosition::Below => "below",
+            TextPosition::Left  => "left",
+            TextPosition::Right => "right",
+        })
+    }
+}
+
+impl Into<String> for TextPosition {
+    fn into(self) -> String {
+        self.to_string()
+    }
+}
+
 #[derive(Serialize)]
 struct City {
     name: String,
     point: Point,
     is_capital: bool,
+    position: TextPosition,
+}
+
+impl PartialEq for City {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+impl Eq for City {}
+
+impl PartialOrd for City {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.name.cmp(&other.name))
+    }
+}
+
+impl Ord for City {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.name.cmp(&other.name)
+    }
 }
 
 #[derive(Serialize)]
@@ -142,9 +208,29 @@ struct Country {
     point: Point,
 }
 
+impl PartialEq for Country {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+impl Eq for Country {}
+
+impl PartialOrd for Country {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.name.cmp(&other.name))
+    }
+}
+
+impl Ord for Country {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.name.cmp(&other.name)
+    }
+}
+
 #[derive(Default, Serialize)]
 struct Map {
-    paths: HashMap<MapFeatureType, Vec<MapPath>>,
+    paths: BTreeMap<MapFeatureType, Vec<MapPath>>,
     cities: Vec<City>,
     countries: Vec<Country>,
 }
@@ -187,6 +273,7 @@ fn main() {
                 let x: SvgNumber = attr.get("cx").unwrap().parse().unwrap();
                 let y: SvgNumber = attr.get("cy").unwrap().parse().unwrap();
                 let point = Point{x,y};
+                let position: TextPosition = attr.get("name-position").map(|v| v.parse().ok()).flatten().unwrap_or_default();
 
                 if kind == MapFeatureType::Country {
                     map.countries.push(Country { name, point });
@@ -197,7 +284,7 @@ fn main() {
                             is_capital = true;
                         }
                     }
-                    map.cities.push(City { name, point, is_capital });
+                    map.cities.push(City { name, point, is_capital, position });
                 };
             },
 
@@ -324,9 +411,13 @@ fn main() {
         city.point = svg_to_latlong(&city.point);
     }
 
+    map.cities.sort_unstable();
+
     for country in map.countries.iter_mut() {
         country.point = svg_to_latlong(&country.point);
     }
+
+    map.countries.sort_unstable();
 
     for (map_feature_type, paths) in map.paths.iter() {
         println!("Feature type \"{}\" has {} paths", map_feature_type, paths.len());

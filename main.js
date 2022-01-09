@@ -113,7 +113,22 @@ Promise.all([window.onload, mapDataPromise]).then(async ([_, mapData]) => {
                     ctx.arc(...screenPoint, r, 0, Math.PI * 2);
                     ctx.fill();
                 }
-                screenPoint[1] -= r * (city.is_capital ? 6 : 4);
+                switch (city.position) {
+                    case "above":
+                        screenPoint[1] -= r * (city.is_capital ? 6 : 4);
+                        break;
+                    case "below":
+                        screenPoint[1] += r * (city.is_capital ? 6 : 4);
+                        break;
+                    case "left":
+                        screenPoint[0] -= r * (city.is_capital ? 4 : 2) + ctx.measureText(city.name).width / 2;
+                        break;
+                    case "right":
+                        screenPoint[0] += r * (city.is_capital ? 4 : 2) + ctx.measureText(city.name).width / 2;
+                        break;
+                    default:
+                        throw `Invalid city position: ${city.position}`;
+                }
                 ctx.strokeText(city.name, ...screenPoint);
                 ctx.fillText(city.name, ...screenPoint);
             }
