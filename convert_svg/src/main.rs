@@ -41,6 +41,7 @@ enum MapFeatureType {
     Lake,
     River,
     City,
+    Country,
 }
 
 impl FromStr for MapFeatureType {
@@ -57,6 +58,7 @@ impl FromStr for MapFeatureType {
             "Rivers"    => River,
             "Lakes"     => Lake,
             "Cities"    => City,
+            "Countries" => Country,
             _ => return Err(()),
         })
     }
@@ -75,6 +77,7 @@ impl Display for MapFeatureType {
             River    => "river",
             Lake     => "lake",
             City     => "city",
+            Country  => "country",
         })
     }
 }
@@ -133,10 +136,17 @@ struct City {
     is_capital: bool,
 }
 
+#[derive(Serialize)]
+struct Country {
+    name: String,
+    point: Point,
+}
+
 #[derive(Default, Serialize)]
 struct Map {
     paths: HashMap<MapFeatureType, Vec<MapPath>>,
     cities: Vec<City>,
+    countries: Vec<Country>,
 }
 
 fn main() {
@@ -163,27 +173,33 @@ fn main() {
                         }
                     }
                 }
-            }
+            },
 
             Event::Tag("g", tag::Type::End, _attr) => {
                 if let Some(ending_layer) = map_feature_stack.pop() {
                     eprintln!("layer \"{}\" end", ending_layer);
                 }
                 current_feature = map_feature_stack.last().copied();
-            }
+            },
 
-            Event::Tag("circle", _, attr) if current_feature == Some(MapFeatureType::City) => {
+            Event::Tag("circle", _, attr) => if let Some(kind @ (MapFeatureType::City | MapFeatureType::Country)) = current_feature {
                 let name = String::from(attr.get("inkscape:label").unwrap().deref());
                 let x: SvgNumber = attr.get("cx").unwrap().parse().unwrap();
                 let y: SvgNumber = attr.get("cy").unwrap().parse().unwrap();
-                let mut is_capital = false;
-                if let Some(classlist) = attr.get("class") {
-                    if classlist.contains("capital") {
-                        is_capital = true;
+                let point = Point{x,y};
+
+                if kind == MapFeatureType::Country {
+                    map.countries.push(Country { name, point });
+                } else if kind == MapFeatureType::City {
+                    let mut is_capital = false;
+                    if let Some(classlist) = attr.get("class") {
+                        if classlist.contains("capital") {
+                            is_capital = true;
+                        }
                     }
-                }
-                map.cities.push(City { name, point: Point{x,y}, is_capital });
-            }
+                    map.cities.push(City { name, point, is_capital });
+                };
+            },
 
             Event::Tag("path", tag_type, attr) => if !map_feature_stack.is_empty() {
                 let data = attr.get("d").unwrap();
@@ -306,6 +322,10 @@ fn main() {
 
     for city in map.cities.iter_mut() {
         city.point = svg_to_latlong(&city.point);
+    }
+
+    for country in map.countries.iter_mut() {
+        country.point = svg_to_latlong(&country.point);
     }
 
     for (map_feature_type, paths) in map.paths.iter() {
