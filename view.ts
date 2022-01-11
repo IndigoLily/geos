@@ -1,13 +1,25 @@
-class View {
-  x: number = 0;
-  y: number = 0;
+export class View {
+  x: number;
+  y: number;
 
-  #w: number = 1;
-  #h: number = 1;
-  #wh_min: number = 1;
+  #w: number;
+  #h: number;
+  #wh_min: number;
 
-  #scaleExponent: number = 0;
-  #scale: number = 2**this.#scaleExponent;
+  #scaleExponent: number;
+  #scale: number;
+
+  constructor(x: number = 0, y: number = 0, w: number = 1, h: number = 1, z: number = 0) {
+    this.x = x;
+    this.y = y;
+
+    this.#w = w;
+    this.#h = h;
+    this.#wh_min = Math.min(w, h);
+
+    this.#scaleExponent = z;
+    this.#scale = 2**this.#scaleExponent;
+  }
 
   get scale() {
     return this.#scale;
@@ -64,4 +76,4 @@ class View {
   }
 };
 
-export const view = new View();
+export const defaultView = new View();
