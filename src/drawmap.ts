@@ -3,7 +3,7 @@ import {View} from "./view";
 export const cnv = document.createElement("canvas");
 export const ctx = cnv.getContext("2d")!;
 
-cnv.width = 1024;
+cnv.width = 1024*8;
 cnv.height = cnv.width / 2;
 
 export const view = new View(0, 0, cnv.width, cnv.height);
@@ -201,7 +201,7 @@ export const ready =
         ctx.restore();
       }
 
-      return function drawMap(ctx: CanvasRenderingContext2D) {
+      return function drawMap(ctx: CanvasRenderingContext2D, isGlobe: boolean = false) {
         ctx.clearRect(0, 0, view.w, view.h);
 
         drawPaths(ctx, "reef");
@@ -216,35 +216,46 @@ export const ready =
         drawRivers(ctx);
         ctx.globalCompositeOperation = "source-over";
 
-        ctx.lineWidth = 1;
+
+        ctx.lineWidth = isGlobe ? 4 : 1;
+        ctx.globalAlpha = 1 / 3;
 
         // prime meridian
         ctx.strokeStyle = "#00f";
-        ctx.globalAlpha = 1 / 3;
         ctx.beginPath();
         ctx.moveTo((view.w / 2 - view.x * view.scale) | 0, -1);
         ctx.lineTo((view.w / 2 - view.x * view.scale) | 0, view.h + 1);
         ctx.stroke();
-        ctx.globalAlpha = 1;
 
         // equator
         ctx.strokeStyle = "#f00";
-        ctx.globalAlpha = 1 / 3;
         ctx.beginPath();
         ctx.moveTo(-1, (view.h / 2 - view.y * view.scale) | 0);
         ctx.lineTo(view.w + 1, (view.h / 2 - view.y * view.scale) | 0);
         ctx.stroke();
+
         ctx.globalAlpha = 1;
 
-        // border
-        //ctx.strokeStyle = "#000";
-        //ctx.strokeRect(
-        //  view.w / 2 + (-view.wh_min - view.x) * view.scale,
-        //  view.h / 2 + (-view.wh_min / 2 - view.y) * view.scale,
-        //  view.wh_min * 2 * view.scale,
-        //  view.wh_min * view.scale
-        //);
 
-        drawNames(ctx);
+        if (!isGlobe) {
+          // border
+          ctx.strokeStyle = "#000";
+          ctx.strokeRect(
+            view.w / 2 + (-view.wh_min - view.x) * view.scale,
+            view.h / 2 + (-view.wh_min / 2 - view.y) * view.scale,
+            view.wh_min * 2 * view.scale,
+            view.wh_min * view.scale
+          );
+
+          drawNames(ctx);
+        }
+
+
+        if (isGlobe) {
+          ctx.globalCompositeOperation = "destination-over";
+          ctx.fillStyle = CLR.water;
+          ctx.fillRect(0, 0, view.w, view.h);
+          ctx.globalCompositeOperation = "source-over";
+        }
       }
     });

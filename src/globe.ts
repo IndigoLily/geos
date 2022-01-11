@@ -15,18 +15,18 @@ export const cnv = renderer.domElement;
 
 camera.position.z = 2;
 
-const mapTexture = new THREE.Texture(mapCnv);
+export const mapTexture = new THREE.Texture(mapCnv);
 
-const globeGeo = new THREE.SphereGeometry(1, 64, 32);
+const globeGeo = new THREE.SphereGeometry(1, 1024, 512);
 const globeMat = new THREE.MeshBasicMaterial({map: mapTexture});
 const globe = new THREE.Mesh(globeGeo, globeMat);
-globe.rotateY(Math.PI);
-globe.rotateX(-Math.PI/20);
+//globe.rotateY(Math.PI);
+globe.rotateX(Math.PI/2/3);
 scene.add(globe);
 
 export function render() {
-  globe.rotateY(0.001);
-  mapTexture.needsUpdate = true;
+  globe.rotation.y = Math.cos(performance.now() / 10000) / 3 - Math.PI*2/3;
+  //mapTexture.needsUpdate = true;
   renderer.render(scene, camera);
 }
 

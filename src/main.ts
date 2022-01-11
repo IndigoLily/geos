@@ -8,32 +8,6 @@ document.body.appendChild(mapCnv);
 
 let globeMode = false;
 
-function setGlobeMode(isOn: boolean) {
-  globeMode = isOn;
-
-  if (isOn) {
-    mapCnv.remove();
-    document.body.appendChild(globe.cnv);
-
-    view.resize(1024, 512);
-    view.x = 0;
-    view.y = 0;
-  } else {
-    globe.cnv.remove();
-    document.body.appendChild(mapCnv);
-  }
-
-  resize();
-}
-
-window.addEventListener("click", () => {
-  setGlobeMode(!globeMode);
-});
-
-setGlobeMode(true);
-
-//(window as any).setGlobeMode = setGlobeMode;
-
 function resize() {
   if (globeMode) {
     [globe.cnv.width, globe.cnv.height] = [window.innerWidth, window.innerHeight];
@@ -57,11 +31,40 @@ window.addEventListener("resize", resize);
 }
 
 ready.then(drawMap => {
-  resize();
-  inputInit(view);
+  //resize();
+  //inputInit(view);
+
+  function setGlobeMode(isOn: boolean) {
+    globeMode = isOn;
+
+    if (globeMode) {
+      mapCnv.remove();
+      document.body.appendChild(globe.cnv);
+
+      view.resize(1024*8, 1024*4);
+      view.x = 0;
+      view.y = 0;
+      drawMap(ctx, true);
+      globe.mapTexture.needsUpdate = true;
+    } else {
+      globe.cnv.remove();
+      document.body.appendChild(mapCnv);
+    }
+
+    resize();
+  }
+
+  window.addEventListener("click", () => {
+    setGlobeMode(!globeMode);
+  });
+
+  setGlobeMode(true);
 
   function drawFrame() {
-    if (!globeMode) {
+    if (globeMode) {
+      //drawMap(ctx, true);
+      globe.render();
+    } else {
       Array.from(heldPanKeys)
         .map(key => Dir.fromKey(key))
         .reduce(
@@ -70,12 +73,8 @@ ready.then(drawMap => {
         ).moveView(view);
 
       view.scaleExponent += Array.from(heldZoomKeys).reduce((prev:number,current:string) => prev + (current === "+" ? 1 : -1), 0) / 25;
-    }
 
-    drawMap(ctx);
-
-    if (globeMode) {
-      globe.render();
+      drawMap(ctx);
     }
 
     requestAnimationFrame(drawFrame);
