@@ -1,4 +1,4 @@
-import { View } from "./view.js"
+import { View } from "./view"
 
 type Point = { x: number, y: number };
 

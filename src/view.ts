@@ -34,9 +34,9 @@ export class View {
     this.#scale = 2**this.#scaleExponent;
   }
 
-  resize() {
-    this.#w = window.innerWidth;
-    this.#h = window.innerHeight;
+  resize(w?: number, h?: number) {
+    this.#w = w ?? window.innerWidth;
+    this.#h = h ?? window.innerHeight;
     this.#wh_min = Math.min(this.#w, this.#h);
     return [this.#w, this.#h];
   }

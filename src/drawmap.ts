@@ -1,4 +1,4 @@
-import {View} from "./view.js";
+import {View} from "./view";
 
 export const cnv = document.createElement("canvas");
 export const ctx = cnv.getContext("2d")!;
@@ -222,8 +222,8 @@ export const ready =
         ctx.strokeStyle = "#00f";
         ctx.globalAlpha = 1 / 3;
         ctx.beginPath();
-        ctx.moveTo((view.w / 2 - view.x * view.scale) | 0, 0);
-        ctx.lineTo((view.w / 2 - view.x * view.scale) | 0, view.h);
+        ctx.moveTo((view.w / 2 - view.x * view.scale) | 0, -1);
+        ctx.lineTo((view.w / 2 - view.x * view.scale) | 0, view.h + 1);
         ctx.stroke();
         ctx.globalAlpha = 1;
 
@@ -231,19 +231,19 @@ export const ready =
         ctx.strokeStyle = "#f00";
         ctx.globalAlpha = 1 / 3;
         ctx.beginPath();
-        ctx.moveTo(0, (view.h / 2 - view.y * view.scale) | 0);
-        ctx.lineTo(view.w, (view.h / 2 - view.y * view.scale) | 0);
+        ctx.moveTo(-1, (view.h / 2 - view.y * view.scale) | 0);
+        ctx.lineTo(view.w + 1, (view.h / 2 - view.y * view.scale) | 0);
         ctx.stroke();
         ctx.globalAlpha = 1;
 
         // border
-        ctx.strokeStyle = "#000";
-        ctx.strokeRect(
-          view.w / 2 + (-view.wh_min - view.x) * view.scale,
-          view.h / 2 + (-view.wh_min / 2 - view.y) * view.scale,
-          view.wh_min * 2 * view.scale,
-          view.wh_min * view.scale
-        );
+        //ctx.strokeStyle = "#000";
+        //ctx.strokeRect(
+        //  view.w / 2 + (-view.wh_min - view.x) * view.scale,
+        //  view.h / 2 + (-view.wh_min / 2 - view.y) * view.scale,
+        //  view.wh_min * 2 * view.scale,
+        //  view.wh_min * view.scale
+        //);
 
         drawNames(ctx);
       }

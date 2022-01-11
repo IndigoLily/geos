@@ -1,7 +1,11 @@
 {
   "extends": "/home/lily/.config/tsconfig.json",
+  //"exclude": ["convert_svg"],
+  "include": ["src/*.ts"],
   "compilerOptions": {
     "noUnusedLocals": false,
     "noUnusedParameters": false,
+    "allowJs": false,
+    "checkJs": false,
   }
 }
